@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simpel-Chat</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        #chat-container { width: 90%; max-width: 500px; height: 80vh; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; background-color: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        #chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; white-space: pre-wrap; /* Wichtig für Zeilenumbrüche */ }
+        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ccc; }
+        #message-input { flex-grow: 1; border: 1px solid #ccc; border-radius: 18px; padding: 10px; margin-right: 10px; }
+        #send-button { border: none; background-color: #0084ff; color: white; padding: 10px 15px; border-radius: 18px; cursor: pointer; }
+        #send-button:hover { background-color: #0073e6; }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div id="chat-messages">Lade Chatverlauf...</div>
+        <div id="chat-input-area">
+            <input type="text" id="message-input" placeholder="Nachricht schreiben...">
+            <button id="send-button">Senden</button>
+        </div>
+    </div>
+
+    <!-- Dieses Skript ermöglicht die Echtzeit-Kommunikation -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Stellt die Verbindung zum Server her
+        const socket = io();
+
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        // Fragt nach einem Namen, mit "Gast" als Standard
+        const username = prompt("Bitte gib deinen Namen ein:", "Gast") || "Gast";
+
+        // Funktion zum Senden einer Nachricht
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const fullMessage = `${username}: ${messageText}`;
+                // Sendet die formatierte Nachricht an den Server
+                socket.emit('new message', fullMessage);
+                messageInput.value = ''; // Eingabefeld leeren
+            }
+        }
+
+        // Event-Listener für den Senden-Button und die Enter-Taste
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Wenn der Server den alten Chatverlauf schickt
+        socket.on('history', (history) => {
+            chatMessages.textContent = history;
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Automatisch nach unten scrollen
+        });
+
+        // Wenn eine brandneue Nachricht vom Server kommt
+        socket.on('new message', (message) => {
+            // Fügt die neue Nachricht am Ende hinzu
+            chatMessages.textContent += '\n' + message;
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Automatisch nach unten scrollen
+        });
+    </script>
+
+</body>
+</html>
